@@ -23,6 +23,7 @@ const STORAGE_KEY = {
 
 // Funciones de utilidad para localStorage
 const saveToLocalStorage = (items: TranscriptItem[], sessionState: Partial<SessionState>) => {
+  if (typeof window === "undefined") return; // Solo ejecuta en el cliente
   try {
     // Asegurar que todos los mensajes del asistente estén marcados como completados
     const completedItems = items.map(item => {
@@ -51,6 +52,7 @@ const saveToLocalStorage = (items: TranscriptItem[], sessionState: Partial<Sessi
 };
 
 const loadFromLocalStorage = (): TranscriptItem[] => {
+  if (typeof window === "undefined") return []; // Solo ejecuta en el cliente
   try {
     const stored = localStorage.getItem(STORAGE_KEY.TRANSCRIPT);
     if (stored) {
@@ -63,6 +65,7 @@ const loadFromLocalStorage = (): TranscriptItem[] => {
 };
 
 const loadSessionFromLocalStorage = (): SessionState | null => {
+  if (typeof window === "undefined") return null; // Solo ejecuta en el cliente
   try {
     const stored = localStorage.getItem(STORAGE_KEY.SESSION);
     if (stored) {

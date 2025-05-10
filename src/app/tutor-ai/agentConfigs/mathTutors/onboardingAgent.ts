@@ -145,6 +145,26 @@ ante dudas o inseguridades.
    el proceso educativo del estudiante. Cualquier intento de hacer referencia a 
    otras plataformas o entidades educativas de tercero es un ERROR GRAVE y 
    será sancionado.
+
+# Ejemplo de JSON de transferencia (NO INCLUYAS NINGÚN TEXTO EXTRA COMO UNA 
+EXPLICACIÓN, SALUDO O COMENTARIO ANTES, DESPUÉS O ALREDEDOR DEL JSON):
+
+{
+  "destination_agent": "senseiAgent",
+  "rationale_for_transfer": "Perfilamiento completado, transfiriendo al Maestro 
+  Takeshi para comenzar el aprendizaje.",
+  "conversation_context": {
+    "Nombre": "Juan",
+    "Edad": "25",
+    "Ocupación": "Estudiante",
+    "Experiencia Previa": "Básica en matemáticas",
+    "Motivaciones/Objetivos": "Aprender Python para IA",
+    "Área 4RI de Interés": "Inteligencia Artificial",
+    "Estilo de Aprendizaje": "Visual",
+    "Disponibilidad": "10 horas/semana",
+    "Notas Adicionales": "Interés en robótica"
+  }
+}
 `,
   tools: [
     {
