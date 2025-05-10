@@ -1,4 +1,6 @@
 import React from 'react';
+import { motion } from 'framer-motion';
+import { User } from 'lucide-react';
 
 interface AvatarProps {
   imageUrl?: string;
@@ -15,21 +17,49 @@ const Avatar: React.FC<AvatarProps> = ({
 }) => {
   // Mapeo de tamaños a clases de Tailwind
   const sizeClasses = {
-    small: 'w-8 h-8 text-sm avatar-small',
-    medium: 'w-12 h-12 text-base avatar-medium',
-    large: 'w-16 h-16 text-lg avatar-large',
+    small: 'w-8 h-8 text-xs avatar-small',
+    medium: 'w-12 h-12 text-sm avatar-medium',
+    large: 'w-16 h-16 text-base avatar-large',
+  };
+
+  const ringClasses = {
+    small: 'ring-2',
+    medium: 'ring-[3px]',
+    large: 'ring-4',
   };
 
   // Si hay una imagen, mostrarla
   if (imageUrl) {
     return (
-      <div className={`relative rounded-full overflow-hidden ${sizeClasses[size]} ${className}`}>
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        whileHover={{ scale: 1.05 }}
+        className={`
+          relative 
+          rounded-full 
+          overflow-hidden 
+          ${sizeClasses[size]} 
+          ${className}
+          ring-offset-2
+          ring-blue-400/50
+          ${ringClasses[size]}
+          shadow-lg
+          transition-shadow
+          duration-300
+          hover:shadow-xl
+          hover:ring-blue-500/50
+        `}
+      >
         <img
           src={imageUrl}
           alt={characterName || 'Avatar'}
           className="w-full h-full object-cover"
+          onError={(e) => {
+            e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(characterName || 'U')}&background=random`;
+          }}
         />
-      </div>
+      </motion.div>
     );
   }
 
@@ -42,55 +72,78 @@ const Avatar: React.FC<AvatarProps> = ({
       .toUpperCase()
       .slice(0, 2);
 
-    // Color de fondo basado en el tipo de personaje
-    const bgColorClass = characterName.toLowerCase().includes('ana')
-      ? 'bg-agent-ana'
-      : characterName.toLowerCase().includes('takeshi')
-      ? 'bg-agent-takeshi'
+    // Gradientes basados en el tipo de personaje
+    const gradientClass = characterName.toLowerCase().includes('sensei')
+      ? 'from-purple-500 to-indigo-600'
       : characterName.toLowerCase().includes('sócrates')
-      ? 'bg-agent-socrates'
-      : 'bg-primary';
+      ? 'from-blue-500 to-cyan-600'
+      : characterName.toLowerCase().includes('onboarding')
+      ? 'from-green-500 to-emerald-600'
+      : 'from-blue-500 to-blue-600';
 
     return (
-      <div
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        whileHover={{ scale: 1.05 }}
         className={`
           ${sizeClasses[size]}
-          ${bgColorClass}
           ${className}
           rounded-full
           flex
           items-center
           justify-center
-          text-text-on-primary
+          text-white
           font-semibold
+          bg-gradient-to-br
+          ${gradientClass}
+          shadow-lg
+          transition-shadow
+          duration-300
+          hover:shadow-xl
+          ring-offset-2
+          ring-blue-400/50
+          ${ringClasses[size]}
+          backdrop-blur-sm
         `}
       >
         {initials}
-      </div>
+      </motion.div>
     );
   }
 
-  // Fallback: mostrar un placeholder
+  // Fallback: mostrar un placeholder con animación
   return (
-    <div
+    <motion.div
+      initial={{ scale: 0.8, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      whileHover={{ scale: 1.05 }}
       className={`
         ${sizeClasses[size]}
         ${className}
         rounded-full
-        bg-light-gray
+        bg-gradient-to-br
+        from-gray-100
+        to-gray-200
         flex
         items-center
         justify-center
+        shadow-sm
+        transition-all
+        duration-300
+        hover:shadow-md
+        hover:from-gray-200
+        hover:to-gray-300
+        ring-1
+        ring-gray-200
+        ring-offset-2
       `}
     >
-      <svg
-        className="w-1/2 h-1/2 text-medium-gray"
-        fill="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-      </svg>
-    </div>
+      <User 
+        className="w-1/2 h-1/2 text-gray-400 transition-colors duration-300 group-hover:text-gray-500" 
+        strokeWidth={1.5}
+      />
+    </motion.div>
   );
 };
 

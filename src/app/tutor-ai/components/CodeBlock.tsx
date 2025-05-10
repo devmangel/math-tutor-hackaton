@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Highlight, themes } from 'prism-react-renderer';
+import { Check, Copy, Terminal } from 'lucide-react';
 
 interface CodeBlockProps {
   code: string;
@@ -13,7 +15,22 @@ const CodeBlock: React.FC<CodeBlockProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`rounded-lg overflow-hidden ${className}`}>
+    <motion.div 
+      className={`rounded-xl overflow-hidden shadow-lg ${className}`}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      {/* Barra superior con título y lenguaje */}
+      <div className="flex items-center justify-between px-4 py-2 bg-[#011627]/90 border-b border-white/10">
+        <div className="flex items-center gap-2">
+          <Terminal className="w-4 h-4 text-gray-400" />
+          <span className="text-xs text-gray-400 uppercase tracking-wider font-medium">
+            {language}
+          </span>
+        </div>
+        <CopyButton code={code} />
+      </div>
       <Highlight
         theme={themes.nightOwl}
         code={code.trim()}
@@ -25,14 +42,20 @@ const CodeBlock: React.FC<CodeBlockProps> = ({
             style={{
               ...style,
               margin: 0,
-              backgroundColor: 'rgb(1, 22, 39)',
+              backgroundColor: 'rgba(1, 22, 39, 0.95)',
+              backdropFilter: 'blur(8px)',
             }}
           >
             {tokens.map((line, i) => (
               <div key={i} {...getLineProps({ line, key: i })}>
-                <span className="inline-block w-8 select-none opacity-50 text-right mr-4">
+                <motion.span 
+                  className="inline-block w-8 select-none opacity-50 text-right mr-4 text-gray-500"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.5 }}
+                  transition={{ delay: i * 0.05 }}
+                >
                   {i + 1}
-                </span>
+                </motion.span>
                 {line.map((token, key) => (
                   <span key={key} {...getTokenProps({ token, key })} />
                 ))}
@@ -42,14 +65,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({
         )}
       </Highlight>
       
-      {/* Barra de herramientas */}
-      <div className="flex items-center justify-between px-4 py-2 bg-[#011627]">
-        <span className="text-xs text-gray-400 uppercase tracking-wider font-medium">
-          {language}
-        </span>
-        <CopyButton code={code} />
-      </div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -68,37 +84,52 @@ const CopyButton: React.FC<{ code: string }> = ({ code }) => {
   };
 
   return (
-    <button
+    <motion.button
       onClick={handleCopy}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
       className={`
+        flex
+        items-center
+        gap-1.5
         text-xs
-        px-2
-        py-1
-        rounded
+        px-3
+        py-1.5
+        rounded-full
         transition-all
         duration-200
         ${copied 
-          ? 'bg-green-500/10 text-green-400'
-          : 'text-gray-400 hover:text-white hover:bg-white/10'
+          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+          : 'text-gray-400 hover:text-white hover:bg-white/10 border border-white/10'
         }
       `}
     >
-      {copied ? (
-        <span className="flex items-center gap-1">
-          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-          </svg>
-          Copiado
-        </span>
-      ) : (
-        <span className="flex items-center gap-1">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
-          Copiar
-        </span>
-      )}
-    </button>
+      <AnimatePresence mode="wait">
+        {copied ? (
+          <motion.div
+            key="check"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0 }}
+            className="flex items-center gap-1.5"
+          >
+            <Check className="w-3.5 h-3.5" />
+            <span>Copiado</span>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="copy"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0 }}
+            className="flex items-center gap-1.5"
+          >
+            <Copy className="w-3.5 h-3.5" />
+            <span>Copiar</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.button>
   );
 };
 

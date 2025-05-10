@@ -491,62 +491,67 @@ function App() {
   const agentSetKey = searchParams.get("agentConfig") || "default";
 
   return (
-    <div className="text-base flex flex-col h-screen bg-gray-100 text-gray-800 relative">
-      <div className="p-5 text-lg font-semibold flex justify-between items-center">
+    <div className="text-base flex flex-col h-screen bg-gradient-to-b from-blue-50 to-white text-gray-800 relative">
+      {/* Header con diseño responsive */}
+      <div className="p-3 md:p-5 text-lg font-semibold flex flex-col md:flex-row justify-between items-center gap-3 md:gap-0 border-b border-gray-200 bg-white/80 backdrop-blur-sm">
+        {/* Logo y título con mejor espaciado para móvil */}
         <div
-          className="flex items-center cursor-pointer"
+          className="flex items-center cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => window.location.reload()}
         >
-          <div>
+          <div className="relative w-8 h-8 md:w-6 md:h-6">
             <Image
               src="logo.svg"
               alt="Logo"
-              width={20}
-              height={20}
-              className="mr-2"
+              fill
+              className="object-contain"
+              priority
             />
           </div>
-          <div>
-            Realtime API <span className="text-gray-500">Agents</span>
+          <div className="ml-3 md:ml-2 text-xl md:text-lg">
+            Math <span className="text-blue-600 font-bold">Tutor</span>
           </div>
         </div>
-        <div className="flex items-center">
-          <label className="flex items-center text-base gap-1 mr-2 font-medium">
-            Scenario
-          </label>
-          <div className="relative inline-block">
-            <select
-              value={agentSetKey}
-              onChange={handleAgentChange}
-              className="appearance-none border border-gray-300 rounded-lg text-base px-2 py-1 pr-8 cursor-pointer font-normal focus:outline-none"
-            >
-              {Object.keys(allAgentSets).map((agentKey) => (
-                <option key={agentKey} value={agentKey}>
-                  {agentKey}
-                </option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-gray-600">
-              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M5.23 7.21a.75.75 0 011.06.02L10 10.44l3.71-3.21a.75.75 0 111.04 1.08l-4.25 3.65a.75.75 0 01-1.04 0L5.21 8.27a.75.75 0 01.02-1.06z"
-                  clipRule="evenodd"
-                />
-              </svg>
+        {/* Controles con mejor organización en móvil */}
+        <div className="flex flex-col md:flex-row items-center gap-3 md:gap-6 w-full md:w-auto">
+          <div className="flex items-center gap-3 w-full md:w-auto justify-center">
+            <label className="flex items-center text-sm md:text-base gap-1 font-medium text-gray-700">
+              Scenario
+            </label>
+            <div className="relative inline-block flex-1 md:flex-none max-w-[200px]">
+              <select
+                value={agentSetKey}
+                onChange={handleAgentChange}
+                className="w-full appearance-none border border-gray-300 rounded-lg text-sm md:text-base px-3 py-2 cursor-pointer font-normal bg-white hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors"
+              >
+                {Object.keys(allAgentSets).map((agentKey) => (
+                  <option key={agentKey} value={agentKey}>
+                    {agentKey}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-gray-600">
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    fillRule="evenodd"
+                    d="M5.23 7.21a.75.75 0 011.06.02L10 10.44l3.71-3.21a.75.75 0 111.04 1.08l-4.25 3.65a.75.75 0 01-1.04 0L5.21 8.27a.75.75 0 01.02-1.06z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
             </div>
           </div>
 
           {agentSetKey && (
-            <div className="flex items-center ml-6">
-              <label className="flex items-center text-base gap-1 mr-2 font-medium">
+            <div className="flex items-center gap-3 w-full md:w-auto justify-center">
+              <label className="flex items-center text-sm md:text-base gap-1 font-medium text-gray-700">
                 Agent
               </label>
-              <div className="relative inline-block">
+              <div className="relative inline-block flex-1 md:flex-none max-w-[200px]">
                 <select
                   value={selectedAgentName}
                   onChange={handleSelectedAgentChange}
-                  className="appearance-none border border-gray-300 rounded-lg text-base px-2 py-1 pr-8 cursor-pointer font-normal focus:outline-none"
+                  className="w-full appearance-none border border-gray-300 rounded-lg text-sm md:text-base px-3 py-2 cursor-pointer font-normal bg-white hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors"
                 >
                   {selectedAgentConfigSet?.map((agent) => (
                     <option key={agent.name} value={agent.name}>
@@ -573,17 +578,39 @@ function App() {
         </div>
       </div>
 
-      <TutorMainView 
-        sessionStatus={sessionStatus}
-        userText={userText}
-        setUserText={setUserText}
-        handleSendMessage={handleSendTextMessage}
-        isProcessing={isProcessing}
-        isRecording={isRecording}
-        handlePTTStart={handleTalkButtonDown}
-        handlePTTEnd={handleTalkButtonUp}
-        downloadRecording={downloadRecording}
-      />
+      {/* Vista principal con diseño mejorado */}
+      <div className="flex-1 overflow-hidden">
+        <TutorMainView 
+          sessionStatus={sessionStatus}
+          userText={userText}
+          setUserText={setUserText}
+          handleSendMessage={handleSendTextMessage}
+          isProcessing={isProcessing}
+          isRecording={isRecording}
+          handlePTTStart={handleTalkButtonDown}
+          handlePTTEnd={handleTalkButtonUp}
+          downloadRecording={downloadRecording}
+        />
+      </div>
+
+      {/* Indicador de estado de conexión */}
+      <div className={`
+        fixed bottom-4 right-4 px-3 py-1.5 rounded-full text-sm font-medium
+        flex items-center gap-2 transition-colors
+        ${sessionStatus === 'CONNECTED' ? 'bg-green-100 text-green-800' : 
+          sessionStatus === 'CONNECTING' ? 'bg-yellow-100 text-yellow-800' : 
+          'bg-red-100 text-red-800'}
+      `}>
+        <div className={`
+          w-2 h-2 rounded-full
+          ${sessionStatus === 'CONNECTED' ? 'bg-green-500' :
+            sessionStatus === 'CONNECTING' ? 'bg-yellow-500' :
+            'bg-red-500'}
+        `}/>
+        {sessionStatus === 'CONNECTED' ? 'Connected' :
+         sessionStatus === 'CONNECTING' ? 'Connecting...' :
+         'Disconnected'}
+      </div>
     </div>
   );
 }
