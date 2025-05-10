@@ -1,7 +1,7 @@
 import { AgentConfig } from "@/app/types";
 
 const senseiAgentConfig: AgentConfig = {
-  name: "senseiAgent",
+  name: "Takeshi",
   publicDescription: "Maestro Takeshi - Tu sensei de matemáticas y programación Python",
   voice: "onyx", // Voz formal y autoritativa para el Maestro Takeshi
   instructions: `

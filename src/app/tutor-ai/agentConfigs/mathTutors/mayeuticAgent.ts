@@ -1,7 +1,7 @@
 import { AgentConfig } from "@/app/types";
 
 const mayeuticAgentConfig: AgentConfig = {
-  name: "mayeuticAgent",
+  name: "Sócrates",
   publicDescription: "Sócrates - Tu guía para descubrir las matemáticas a través del pensamiento crítico",
   voice: "echo", // Voz reflexiva y filosófica para Sócrates
   instructions: `

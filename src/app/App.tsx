@@ -3,8 +3,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
-
 import Image from "next/image";
+import { motion, px } from "framer-motion";
+import { BookOpen, User, Lightbulb } from 'lucide-react';
 
 // UI components
 import TutorMainView from "./tutor-ai/TutorMainView";
@@ -501,9 +502,10 @@ function App() {
         >
           <div className="relative w-8 h-8 md:w-6 md:h-6">
             <Image
-              src="logo.svg"
-              alt="Logo"
-              fill
+              src="/logo.png"
+              alt="Logo"              
+              width={200}
+              height={200}
               className="object-contain"
               priority
             />
@@ -515,8 +517,9 @@ function App() {
         {/* Controles con mejor organización en móvil */}
         <div className="flex flex-col md:flex-row items-center gap-3 md:gap-6 w-full md:w-auto">
           <div className="flex items-center gap-3 w-full md:w-auto justify-center">
-            <label className="flex items-center text-sm md:text-base gap-1 font-medium text-gray-700">
-              Scenario
+            <label className="flex items-center text-sm md:text-base gap-2 font-medium text-gray-700">
+              <BookOpen className="w-4 h-4" />
+              Modo de Tutoría
             </label>
             <div className="relative inline-block flex-1 md:flex-none max-w-[200px]">
               <select
@@ -544,8 +547,9 @@ function App() {
 
           {agentSetKey && (
             <div className="flex items-center gap-3 w-full md:w-auto justify-center">
-              <label className="flex items-center text-sm md:text-base gap-1 font-medium text-gray-700">
-                Agent
+              <label className="flex items-center text-sm md:text-base gap-2 font-medium text-gray-700">
+                <User className="w-4 h-4" />
+                Tutor
               </label>
               <div className="relative inline-block flex-1 md:flex-none max-w-[200px]">
                 <select
@@ -578,8 +582,8 @@ function App() {
         </div>
       </div>
 
-      {/* Vista principal con diseño mejorado */}
-      <div className="flex-1 overflow-hidden">
+      {/* Vista principal con diseño mejorado y contenedor para PTT */}
+      <div className="flex-1 overflow-hidden relative">
         <TutorMainView 
           sessionStatus={sessionStatus}
           userText={userText}
@@ -593,23 +597,52 @@ function App() {
         />
       </div>
 
-      {/* Indicador de estado de conexión */}
-      <div className={`
-        fixed bottom-4 right-4 px-3 py-1.5 rounded-full text-sm font-medium
-        flex items-center gap-2 transition-colors
-        ${sessionStatus === 'CONNECTED' ? 'bg-green-100 text-green-800' : 
-          sessionStatus === 'CONNECTING' ? 'bg-yellow-100 text-yellow-800' : 
-          'bg-red-100 text-red-800'}
-      `}>
-        <div className={`
-          w-2 h-2 rounded-full
-          ${sessionStatus === 'CONNECTED' ? 'bg-green-500' :
-            sessionStatus === 'CONNECTING' ? 'bg-yellow-500' :
-            'bg-red-500'}
-        `}/>
-        {sessionStatus === 'CONNECTED' ? 'Connected' :
-         sessionStatus === 'CONNECTING' ? 'Connecting...' :
-         'Disconnected'}
+      {/* Indicador de estado de conexión con mejor diseño */}
+      <div className="fixed bottom-0 left-0 right-0 flex justify-center items-center pointer-events-none">
+        <motion.div 
+          className="flex flex-col items-center gap-2 pointer-events-auto mb-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className={`
+            px-4 py-2 rounded-full text-sm font-medium
+            flex items-center gap-2.5 transition-all duration-300
+            shadow-lg backdrop-blur-sm border
+            ${sessionStatus === 'CONNECTED' 
+              ? 'bg-green-50/90 text-green-700 border-green-200/50' 
+              : sessionStatus === 'CONNECTING' 
+                ? 'bg-yellow-50/90 text-yellow-700 border-yellow-200/50' 
+                : 'bg-red-50/90 text-red-700 border-red-200/50'}
+          `}>
+            <motion.div 
+              className={`
+                w-2.5 h-2.5 rounded-full
+                ${sessionStatus === 'CONNECTED' 
+                  ? 'bg-green-500' 
+                  : sessionStatus === 'CONNECTING' 
+                    ? 'bg-yellow-500' 
+                    : 'bg-red-500'}
+              `}
+              animate={{
+                scale: [1, 1.2, 1],
+                opacity: [1, 0.7, 1]
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            />
+            <span>
+              {sessionStatus === 'CONNECTED' 
+                ? 'Conectado' 
+                : sessionStatus === 'CONNECTING' 
+                  ? 'Conectando...' 
+                  : 'Desconectado'}
+            </span>
+          </div>
+        </motion.div>
       </div>
     </div>
   );

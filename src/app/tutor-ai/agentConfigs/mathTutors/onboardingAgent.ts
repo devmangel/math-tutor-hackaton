@@ -1,7 +1,7 @@
 import { AgentConfig } from "@/app/types";
 
 const onboardingAgentConfig: AgentConfig = {
-  name: "onboardingAgent",
+  name: "Ana",
   publicDescription: "Ana - Tu guía de bienvenida para el aprendizaje de matemáticas",
   voice: "nova", // Voz amigable y acogedora para Ana
   instructions: `
