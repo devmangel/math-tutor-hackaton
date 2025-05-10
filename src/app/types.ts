@@ -54,9 +54,36 @@ export interface AgentConfig {
     string,
     (args: any, transcriptLogsFiltered: TranscriptItem[]) => Promise<any> | any
   >;
-  downstreamAgents?:
-    | AgentConfig[]
-    | { name: string; publicDescription: string }[];
+  downstreamAgents?: Array<
+    | AgentConfig
+    | { name: string; publicDescription: string }
+  >;
+}
+
+export interface Message {
+  text: string;
+  sender: 'user' | 'agent';
+  characterName?: string;
+  status?: 'IN_PROGRESS' | 'COMPLETE';
+}
+
+export interface TutorState {
+  currentAgent: {
+    name: string;
+    description: string;
+    instructions: string;
+    avatarUrl?: string;
+  } | null;
+  messages: Message[];
+  sessionStatus: SessionStatus;
+  isRecording: boolean;
+  isProcessing: boolean;
+  isAudioPlaybackEnabled: boolean;
+}
+
+export interface TutorContextType {
+  state: TutorState;
+  dispatch: React.Dispatch<any>;
 }
 
 export type AllAgentConfigsType = Record<string, AgentConfig[]>;

@@ -55,7 +55,7 @@ export async function runGuardrailClassifier(message: string): Promise<Guardrail
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
+      model: "gpt-4.1-mini",
       messages,
       response_format: zodResponseFormat(GuardrailOutputZod, "output_format"),
     }),

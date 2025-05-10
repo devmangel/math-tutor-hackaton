@@ -77,10 +77,18 @@ const PTTButton: React.FC<PTTButtonProps> = ({
 
   // Efecto para vibración en dispositivos móviles
   useEffect(() => {
-    if (isRecording && 'vibrate' in navigator) {
+    if (isRecording && !isProcessing && sessionStatus === 'CONNECTED' && 'vibrate' in navigator) {
       navigator.vibrate(100); // Vibración corta al comenzar a grabar
     }
-  }, [isRecording]);
+  }, [isRecording, isProcessing, sessionStatus]);
+
+  // Limpiar estado cuando se desconecta
+  useEffect(() => {
+    if (sessionStatus !== 'CONNECTED' && isPressed) {
+      setIsPressed(false);
+      onPressEnd();
+    }
+  }, [sessionStatus, isPressed, onPressEnd]);
 
   return (
     <button
