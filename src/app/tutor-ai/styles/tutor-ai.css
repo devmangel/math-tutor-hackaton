@@ -214,32 +214,73 @@
   animation: fadeIn 0.3s ease-out forwards;
 }
 
+/* Variables de color */
+:root {
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  --color-error: #ef4444;
+  --color-warning: #f59e0b;
+  --color-success: #10b981;
+  --color-text-on-primary: #ffffff;
+}
+
 /* Animaciones del botón PTT */
 .ptt-button {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(8px);
 }
 
-.ptt-button.recording {
-  transform: scale(1.1);
-}
-
-.ptt-button.recording::before {
+.ptt-button::before {
   content: '';
   position: absolute;
-  inset: -4px;
+  inset: 0;
   border-radius: 50%;
-  background: rgba(231, 76, 60, 0.3);
-  animation: pulseRing 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  background: radial-gradient(
+    circle at center,
+    var(--color-primary) 0%,
+    rgba(37, 99, 235, 0.8) 50%,
+    rgba(37, 99, 235, 0) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-.ptt-button.recording::after {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border-radius: 50%;
-  background: rgba(231, 76, 60, 0.2);
-  animation: pulseRing 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  animation-delay: 0.5s;
+.ptt-button:hover::before {
+  opacity: 0.2;
+}
+
+.ptt-button:active::before {
+  opacity: 0.4;
+}
+
+/* Efecto de onda de audio */
+@keyframes audioWave {
+  0% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.audio-wave {
+  animation: audioWave 2s ease-out infinite;
+}
+
+/* Efecto de procesamiento */
+@keyframes processing {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.processing-ring {
+  animation: processing 1s linear infinite;
 }
 
 /* Animación de procesamiento */
@@ -247,9 +288,29 @@
   animation: breathe 2s ease-in-out infinite;
 }
 
-/* Animación del toggle de transcripción */
-.transcription-toggle {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+/* Mejoras de accesibilidad */
+.ptt-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-primary), 0 0 0 6px rgba(37, 99, 235, 0.3);
+}
+
+/* Soporte para modo oscuro */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primary: #3b82f6;
+    --color-primary-dark: #2563eb;
+  }
+}
+
+/* Optimizaciones para dispositivos táctiles */
+@media (hover: none) {
+  .ptt-button {
+    transform: none !important;
+  }
+  
+  .ptt-button::before {
+    display: none;
+  }
 }
 
 .transcription-toggle:hover {

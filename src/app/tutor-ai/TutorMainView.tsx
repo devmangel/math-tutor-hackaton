@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { TutorProvider, useTutor } from './contexts/TutorContext';
 import { TranscriptProvider } from '../contexts/TranscriptContext';
 import { EventProvider } from '../contexts/EventContext';
@@ -67,25 +68,56 @@ const TutorContent: React.FC<TutorUIProps> = ({
         className="flex-shrink-0"
       />
 
-      {/* Botón PTT */}
-      <PTTButton
-        isRecording={isRecording}
-        isProcessing={isProcessing}
-        onPressStart={handlePTTStart}
-        onPressEnd={handlePTTEnd}
-        sessionStatus={sessionStatus}
-      />
+      {/* Botón PTT con feedback visual */}
+      <AnimatePresence>
+        <div className="relative">
+        <PTTButton
+          isRecording={isRecording}
+          isProcessing={isProcessing}
+          onPressStart={handlePTTStart}
+          onPressEnd={handlePTTEnd}
+          sessionStatus={sessionStatus}
+        />
+        
+        {/* Tooltip de estado */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-3 py-1 rounded text-sm whitespace-nowrap"
+        >
+          {sessionStatus === 'CONNECTING' ? 'Conectando...' :
+           sessionStatus === 'DISCONNECTED' ? 'Reconectando...' :
+           isProcessing ? 'Procesando audio...' :
+           isRecording ? 'Suelta para enviar' :
+           'Mantén presionado para hablar'}
+        </motion.div>
+        </div>
+      </AnimatePresence>
 
-      {/* Botón de descarga */}
-      <button
+      {/* Botón de descarga con animación */}
+      <motion.button
         onClick={downloadRecording}
-        className="fixed bottom-24 right-4 p-2 bg-gray-800 text-white rounded-full shadow-lg hover:bg-gray-700"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        className="fixed bottom-24 right-4 p-2 bg-gray-800 text-white rounded-full shadow-lg hover:bg-gray-700 transition-colors"
         title="Descargar grabación"
       >
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <motion.svg 
+          className="w-6 h-6" 
+          fill="none" 
+          viewBox="0 0 24 24" 
+          stroke="currentColor"
+          animate={{ y: [0, 2, 0] }}
+          transition={{ 
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-        </svg>
-      </button>
+        </motion.svg>
+      </motion.button>
     </div>
   );
 };

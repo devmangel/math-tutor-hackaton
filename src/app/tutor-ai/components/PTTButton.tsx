@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAudioInput } from '@/app/hooks/useAudioInput';
 
 interface PTTButtonProps {
   isRecording: boolean;
@@ -41,16 +43,26 @@ const PTTButton: React.FC<PTTButtonProps> = ({
   sessionStatus = 'CONNECTED',
 }) => {
   const connectionState = getConnectionStatus(sessionStatus);
+  const {
+    isActive,
+    audioLevel,
+    error,
+    permissionStatus,
+    startRecording,
+    stopRecording
+  } = useAudioInput();
   const [isPressed, setIsPressed] = useState(false);
 
   // Manejar eventos de mouse
   const handleMouseDown = () => {
     setIsPressed(true);
+    startRecording();
     onPressStart();
   };
 
   const handleMouseUp = () => {
     setIsPressed(false);
+    stopRecording();
     onPressEnd();
   };
 
@@ -91,7 +103,17 @@ const PTTButton: React.FC<PTTButtonProps> = ({
   }, [sessionStatus, isPressed, onPressEnd]);
 
   return (
-    <button
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      animate={{
+        scale: isRecording ? 1.1 : 1,
+        backgroundColor: isRecording 
+          ? 'var(--color-error)' 
+          : isProcessing 
+            ? 'var(--color-warning)' 
+            : 'var(--color-primary)'
+      }}
       className={`
         fixed
         bottom-6
@@ -107,17 +129,11 @@ const PTTButton: React.FC<PTTButtonProps> = ({
         justify-center
         shadow-lg
         focus:outline-none
+        focus:ring-2
+        focus:ring-offset-2
+        focus:ring-primary
         ptt-button
         z-50
-        ${isProcessing 
-          ? 'bg-warning processing'
-          : isRecording
-            ? 'bg-error recording scale-110'
-            : connectionState.className || 'bg-primary hover:bg-accent-2 active:scale-95'
-        }
-        transition-all
-        duration-200
-        ease-in-out
         ${className}
       `}
       onMouseDown={handleMouseDown}
@@ -156,23 +172,71 @@ const PTTButton: React.FC<PTTButtonProps> = ({
         />
       </svg>
 
-      {/* Ondas de audio animadas cuando está grabando */}
-      {isRecording && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="absolute w-full h-full rounded-full animate-ping bg-error opacity-20" />
-          <div className="absolute w-[90%] h-[90%] rounded-full animate-ping bg-error opacity-10 delay-150" />
-          <div className="absolute w-[80%] h-[80%] rounded-full animate-ping bg-error opacity-5 delay-300" />
-          <div className="absolute w-[70%] h-[70%] rounded-full animate-ping bg-error opacity-5 delay-500" />
-        </div>
-      )}
+      {/* Visualizador de nivel de audio */}
+      <AnimatePresence>
+        {isRecording && (
+          <motion.div 
+            className="absolute inset-0"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+          >
+            {[...Array(4)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute inset-0 rounded-full bg-error"
+                animate={{
+                  scale: [1, 1 + (audioLevel * 0.5 * (i + 1))],
+                  opacity: [0.4 - (i * 0.1), 0]
+                }}
+                transition={{
+                  repeat: Infinity,
+                  duration: 1.5,
+                  delay: i * 0.2,
+                  ease: "easeOut"
+                }}
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Animación de procesamiento */}
-      {isProcessing && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-8 h-8 border-4 border-text-on-primary rounded-full border-t-transparent animate-spin" />
-        </div>
-      )}
-    </button>
+      <AnimatePresence>
+        {isProcessing && (
+          <motion.div 
+            className="absolute inset-0 flex items-center justify-center pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div 
+              className="w-8 h-8 border-4 border-text-on-primary rounded-full border-t-transparent"
+              animate={{ rotate: 360 }}
+              transition={{
+                duration: 1,
+                repeat: Infinity,
+                ease: "linear"
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Mensaje de error */}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-error text-white px-4 py-2 rounded-lg text-sm whitespace-nowrap"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+          >
+            {error}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.button>
   );
 };
 

@@ -52,11 +52,10 @@ function App() {
   const [userText, setUserText] = useState<string>("");
   const [isPTTActive, setIsPTTActive] = useState<boolean>(false);
   const [isPTTUserSpeaking, setIsPTTUserSpeaking] = useState<boolean>(false);
+  const [isRecording, setIsRecording] = useState<boolean>(false);
   const [isAudioPlaybackEnabled, setIsAudioPlaybackEnabled] =
     useState<boolean>(true);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [isRecording, setIsRecording] = useState<boolean>(false);
-
   const [isOutputAudioBufferActive, setIsOutputAudioBufferActive] =
     useState<boolean>(false);
 
@@ -353,17 +352,33 @@ function App() {
     setIsProcessing(false);
   };
 
-  const handleTalkButtonDown = () => {
+  const handleTalkButtonDown = async () => {
     if (sessionStatus !== "CONNECTED" || dataChannel?.readyState !== "open")
       return;
-    cancelAssistantSpeech();
-
-    setIsPTTUserSpeaking(true);
-    setIsRecording(true);
-    sendClientEvent({ type: "input_audio_buffer.clear" }, "clear PTT buffer");
+    
+    try {
+      cancelAssistantSpeech();
+      setIsPTTUserSpeaking(true);
+      setIsRecording(true);
+      
+      // Solicitar permisos del micrófono antes de empezar
+      await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+      
+      sendClientEvent({ type: "input_audio_buffer.clear" }, "clear PTT buffer");
+    } catch (error) {
+      console.error('Error al acceder al micrófono:', error);
+      setIsPTTUserSpeaking(false);
+      setIsRecording(false);
+    }
   };
 
-  const handleTalkButtonUp = () => {
+  const handleTalkButtonUp = async () => {
     if (
       sessionStatus !== "CONNECTED" ||
       dataChannel?.readyState !== "open" ||
@@ -371,12 +386,18 @@ function App() {
     )
       return;
 
-    setIsPTTUserSpeaking(false);
-    setIsRecording(false);
-    setIsProcessing(true);
-    sendClientEvent({ type: "input_audio_buffer.commit" }, "commit PTT");
-    sendClientEvent({ type: "response.create" }, "trigger response PTT");
-    setIsProcessing(false);
+    try {
+      setIsPTTUserSpeaking(false);
+      setIsRecording(false);
+      setIsProcessing(true);
+      
+      await sendClientEvent({ type: "input_audio_buffer.commit" }, "commit PTT");
+      await sendClientEvent({ type: "response.create" }, "trigger response PTT");
+    } catch (error) {
+      console.error('Error al procesar audio:', error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const onToggleConnection = () => {
