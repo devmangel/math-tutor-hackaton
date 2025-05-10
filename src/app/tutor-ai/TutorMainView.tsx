@@ -9,7 +9,7 @@ import ChatInterface from './components/ChatInterface';
 import UserInput from './components/UserInput';
 import PTTButton from './components/PTTButton';
 import TranscriptionToggle from './components/TranscriptionToggle';
-import { createRealtimeConnection } from '../lib/realtimeConnection';
+import { createRealtimeConnection, cleanupRealtimeConnection } from '../lib/realtimeConnection';
 import { useHandleServerEvent } from '../hooks/useHandleServerEvent';
 import useAudioDownload from '../hooks/useAudioDownload';
 
@@ -19,10 +19,16 @@ const TutorContent: React.FC = () => {
   const [showTranscription, setShowTranscription] = useState(false);
   const [dataChannel, setDataChannel] = useState<RTCDataChannel | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [retryTimeout, setRetryTimeout] = useState<NodeJS.Timeout | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const dcRef = useRef<RTCDataChannel | null>(null);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  const conversationStateRef = useRef<{
+    currentState: string;
+    profile: any;
+  } | null>(null);
   const MAX_RETRIES = 3;
+  const INITIAL_RETRY_DELAY = 1000; // 1 segundo
 
   // Initialize the recording hook
   const { startRecording, stopRecording } = useAudioDownload();
@@ -108,10 +114,22 @@ const TutorContent: React.FC = () => {
 
   const handleConnectionLost = async () => {
     if (retryCount < MAX_RETRIES) {
-      console.log(`Reintentando conexión (${retryCount + 1}/${MAX_RETRIES})...`);
-      setRetryCount(prev => prev + 1);
-      dispatch(tutorActions.setSessionStatus('DISCONNECTED'));
-      await connectToRealtime();
+      const delay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount); // Backoff exponencial
+      console.log(`Reintentando conexión en ${delay/1000} segundos (${retryCount + 1}/${MAX_RETRIES})...`);
+      
+      // Limpiar timeout anterior si existe
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
+      }
+      
+      // Configurar nuevo intento con delay
+      const timeout = setTimeout(async () => {
+        setRetryCount(prev => prev + 1);
+        dispatch(tutorActions.setSessionStatus('DISCONNECTED'));
+        await connectToRealtime();
+      }, delay);
+      
+      setRetryTimeout(timeout);
     } else {
       console.error("Máximo número de reintentos alcanzado");
       dispatch(tutorActions.setSessionStatus('DISCONNECTED'));
@@ -129,6 +147,19 @@ const TutorContent: React.FC = () => {
 
       setSelectedAgentConfig(onboardingAgent);
       
+      // Restaurar estado de la conversación si existe
+      const savedState = localStorage.getItem('conversationState');
+      if (savedState) {
+        const parsedState = JSON.parse(savedState);
+        conversationStateRef.current = parsedState;
+      } else {
+        // Inicializar nuevo estado
+        conversationStateRef.current = {
+          currentState: '1_saludo_introduccion',
+          profile: {}
+        };
+      }
+      
       dispatch(
         tutorActions.setCurrentAgent({
           name: onboardingAgent.publicDescription.split(' - ')[0],
@@ -137,14 +168,16 @@ const TutorContent: React.FC = () => {
         })
       );
 
-      // Mensaje de bienvenida
-      dispatch(
-        tutorActions.addMessage({
-          text: '¡Hola! Soy Ana, tu guía para el aprendizaje de matemáticas. Me gustaría conocerte mejor para personalizar tu experiencia de aprendizaje. ¿Cómo te gustaría que te llame?',
-          sender: 'agent',
-          characterName: 'Ana',
-        })
-      );
+      // Solo enviar mensaje de bienvenida si es una nueva conversación
+      if (!savedState) {
+        dispatch(
+          tutorActions.addMessage({
+            text: '¡Hola! Soy Ana, tu guía para el aprendizaje de matemáticas. Me gustaría conocerte mejor para personalizar tu experiencia de aprendizaje. ¿Cómo te gustaría que te llame?',
+            sender: 'agent',
+            characterName: 'Ana',
+          })
+        );
+      }
 
       // Actualizar la sesión con la configuración del agente
       updateSession(true);
@@ -288,18 +321,34 @@ const TutorContent: React.FC = () => {
     sendClientEvent({ type: "response.create" }, "trigger response PTT");
   };
 
-  // Cleanup al desmontar
+  // Guardar estado de la conversación cuando cambie
+  useEffect(() => {
+    if (conversationStateRef.current) {
+      localStorage.setItem('conversationState', JSON.stringify(conversationStateRef.current));
+    }
+  }, [state.messages]);
+
+  // Cleanup al desmontar o cuando cambie el estado de la sesión
   useEffect(() => {
     return () => {
-      if (pcRef.current) {
-        pcRef.current.getSenders().forEach((sender) => {
-          if (sender.track) {
-            sender.track.stop();
-          }
-        });
-        pcRef.current.close();
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
+      }
+      cleanupRealtimeConnection();
+      stopRecording();
+    };
+  }, [state.sessionStatus]);
+
+  // Cleanup adicional al desmontar el componente
+  useEffect(() => {
+    return () => {
+      cleanupRealtimeConnection();
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
       }
       stopRecording();
+      // Limpiar estado de la conversación al desmontar
+      localStorage.removeItem('conversationState');
     };
   }, []);
 

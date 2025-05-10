@@ -102,7 +102,46 @@ Expresivo cuando el estudiante comparte logros o metas inspiradoras; empático a
    - La transferencia debe ser inmediata después de tu mensaje de despedida
    - El perfil completo y bien estructurado es vital para la experiencia del estudiante
 `,
-  tools: [], // Se poblará con transferAgents por injectTransferTools
+  tools: [
+    {
+      type: "function",
+      name: "updateConversationState",
+      description: "Actualiza el estado actual de la conversación y el perfil del estudiante",
+      parameters: {
+        type: "object",
+        properties: {
+          currentState: {
+            type: "string",
+            description: "El ID del estado actual de la conversación",
+            enum: [
+              "1_saludo_introduccion",
+              "2_antecedentes_experiencia",
+              "3_motivaciones_objetivos",
+              "4_estilo_ritmo",
+              "5_resumen_perfil",
+              "fin_onboarding"
+            ]
+          },
+          profile: {
+            type: "object",
+            description: "El perfil actualizado del estudiante",
+            properties: {
+              nombre: { type: "string" },
+              edad: { type: "string" },
+              ocupacion: { type: "string" },
+              experiencia_previa: { type: "string" },
+              motivaciones: { type: "string" },
+              area_4ri: { type: "string" },
+              estilo_aprendizaje: { type: "string" },
+              disponibilidad: { type: "string" },
+              notas_adicionales: { type: "string" }
+            }
+          }
+        },
+        required: ["currentState", "profile"]
+      }
+    }
+  ], // Se poblará con transferAgents por injectTransferTools
   downstreamAgents: [], // Se configurará en index.ts
 };
 
