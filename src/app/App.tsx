@@ -605,43 +605,6 @@ function App() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <div className={`
-            px-4 py-2 rounded-full text-sm font-medium
-            flex items-center gap-2.5 transition-all duration-300
-            shadow-lg backdrop-blur-sm border
-            ${sessionStatus === 'CONNECTED' 
-              ? 'bg-green-50/90 text-green-700 border-green-200/50' 
-              : sessionStatus === 'CONNECTING' 
-                ? 'bg-yellow-50/90 text-yellow-700 border-yellow-200/50' 
-                : 'bg-red-50/90 text-red-700 border-red-200/50'}
-          `}>
-            <motion.div 
-              className={`
-                w-2.5 h-2.5 rounded-full
-                ${sessionStatus === 'CONNECTED' 
-                  ? 'bg-green-500' 
-                  : sessionStatus === 'CONNECTING' 
-                    ? 'bg-yellow-500' 
-                    : 'bg-red-500'}
-              `}
-              animate={{
-                scale: [1, 1.2, 1],
-                opacity: [1, 0.7, 1]
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            />
-            <span>
-              {sessionStatus === 'CONNECTED' 
-                ? 'Conectado' 
-                : sessionStatus === 'CONNECTING' 
-                  ? 'Conectando...' 
-                  : 'Desconectado'}
-            </span>
-          </div>
         </motion.div>
       </div>
     </div>
