@@ -1,5 +1,109 @@
 /* Estilos específicos para el tutor-ai */
 
+/* Estilos para fórmulas matemáticas */
+.math-content {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  padding: 0.5rem 0;
+}
+
+.math-content .katex-display {
+  margin: 1rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+}
+
+.mixed-content .katex {
+  font-size: 1.1em;
+}
+
+.mixed-content .katex-display {
+  margin: 1rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+}
+
+/* Estilos para bloques de código */
+.code-block {
+  position: relative;
+  font-family: 'Fira Code', monospace;
+}
+
+.code-block pre {
+  margin: 0;
+  padding: 1rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  background: #1e1e1e;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+}
+
+.code-block code {
+  font-family: inherit;
+}
+
+/* Botón de copiar código */
+.code-block button.copy-button {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 0.25rem;
+  color: #fff;
+  font-size: 0.8rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.code-block:hover button.copy-button {
+  opacity: 1;
+}
+
+.code-block button.copy-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.code-block button.copy-button:active {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Estilos para el contenido matemático */
+.math-content {
+  font-size: 1rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  padding: 0.5rem 0;
+}
+
+.math-content .katex-display {
+  margin: 1rem 0;
+}
+
+.mixed-content {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.mixed-content .katex {
+  font-size: 1.1em;
+}
+
+.mixed-content .katex-display {
+  margin: 1rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
 /* Asegurar que el contenedor principal ocupe toda la altura disponible en móviles */
 .h-screen {
   height: 100dvh; /* dynamic viewport height */
@@ -7,6 +111,35 @@
 
 /* Ajustes para pantallas pequeñas */
 @media (max-width: 640px) {
+  .math-content {
+    font-size: 1rem;
+  }
+
+  .math-content .katex-display {
+    padding: 0.25rem;
+  }
+
+  .code-block pre {
+    font-size: 0.8rem;
+    padding: 0.75rem;
+  }
+
+  .code-block button.copy-button {
+    opacity: 1;
+    top: 0.25rem;
+    right: 0.25rem;
+  }
+  .math-content {
+    font-size: 0.9rem;
+  }
+
+  .mixed-content {
+    font-size: 0.9rem;
+  }
+
+  .mixed-content .katex {
+    font-size: 1em;
+  }
   /* Hacer el header más compacto en móviles */
   .agent-display {
     padding: 0.75rem;

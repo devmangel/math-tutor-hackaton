@@ -1,95 +1,101 @@
 'use client';
 
-import React, { useState } from 'react';
-import { TutorProvider, useTutor, tutorActions } from './contexts/TutorContext';
+import React from 'react';
+import { TutorProvider, useTutor } from './contexts/TutorContext';
 import { TranscriptProvider } from '../contexts/TranscriptContext';
 import { EventProvider } from '../contexts/EventContext';
 import AgentDisplay from './components/AgentDisplay';
 import ChatInterface from './components/ChatInterface';
 import UserInput from './components/UserInput';
 import PTTButton from './components/PTTButton';
-import TranscriptionToggle from './components/TranscriptionToggle';
-import { RealtimeAgentView } from '../components/RealtimeAgentView';
 import { SessionStatus } from '../types';
-import { TutorContentProps } from '../types/tutor';
 
-// Componente interno que maneja la UI
-const TutorContent = () => {
-  const { state, dispatch } = useTutor();
-  const [showTranscription, setShowTranscription] = useState(false);
+interface TutorUIProps {
+  sessionStatus: SessionStatus;
+  userText: string;
+  setUserText: (text: string) => void;
+  handleSendMessage: () => void;
+  isProcessing: boolean;
+  isRecording: boolean;
+  handlePTTStart: () => void;
+  handlePTTEnd: () => void;
+  downloadRecording: () => void;
+}
 
-  const handleConnectionStatusChange = (status: SessionStatus) => {
-    dispatch(tutorActions.setSessionStatus(status));
-  };
+const TutorContent: React.FC<TutorUIProps> = ({
+  userText,
+  setUserText,
+  handleSendMessage,
+  isProcessing,
+  isRecording,
+  handlePTTStart,
+  handlePTTEnd,
+  downloadRecording,
+  sessionStatus
+}) => {
+  const { state } = useTutor();
 
-  const handleDataChannelMessage = (data: any) => {
-    // Aquí puedes manejar los mensajes del canal de datos si es necesario
-  };
-
-  const TutorUI = React.memo((props: TutorContentProps) => (
+  return (
     <div className="flex flex-col h-full bg-background">
       {/* Header con información del agente */}
-      {state.currentAgent && props.sessionStatus !== 'DISCONNECTED' && (
+      {state.currentAgent && sessionStatus !== 'DISCONNECTED' && (
         <AgentDisplay
           agentName={state.currentAgent.name}
           agentDescription={state.currentAgent.description}
           agentAvatarUrl={state.currentAgent.avatarUrl}
+          agentRole={state.currentAgent.name.toLowerCase().includes('sensei') ? 'sensei' : 
+                    state.currentAgent.name.toLowerCase().includes('socrates') ? 'mayeutic' : 
+                    state.currentAgent.name.toLowerCase().includes('onboarding') ? 'onboarding' : undefined}
+          progress={state.sessionProgress || 0}
           className="flex-shrink-0"
         />
       )}
 
-      {/* Toggle de transcripción */}
-      <TranscriptionToggle
-        isVisible={showTranscription}
-        onToggle={() => setShowTranscription(!showTranscription)}
+      {/* Área de chat */}
+      <ChatInterface
+        messages={state.messages}
+        className="flex-grow"
       />
 
-      {/* Área de chat (solo visible si showTranscription es true) */}
-      {showTranscription && (
-        <ChatInterface
-          messages={state.messages}
-          className="flex-grow"
-        />
-      )}
-
-      {/* Input de texto (solo visible si showTranscription es true) */}
-      {showTranscription && (
-        <UserInput
-          onSubmit={props.handleSendMessage}
-          disabled={props.isProcessing}
-          className="flex-shrink-0"
-        />
-      )}
+      {/* Input de texto */}
+      <UserInput
+        value={userText}
+        onChange={setUserText}
+        onSubmit={handleSendMessage}
+        disabled={isProcessing}
+        placeholder="Escribe un mensaje..."
+        className="flex-shrink-0"
+      />
 
       {/* Botón PTT */}
       <PTTButton
-        isRecording={props.isRecording}
-        isProcessing={props.isProcessing}
-        onPressStart={props.handlePTTStart}
-        onPressEnd={props.handlePTTEnd}
-        sessionStatus={props.sessionStatus}
+        isRecording={isRecording}
+        isProcessing={isProcessing}
+        onPressStart={handlePTTStart}
+        onPressEnd={handlePTTEnd}
+        sessionStatus={sessionStatus}
       />
-    </div>
-  ));
 
-  return (
-    <RealtimeAgentView
-      onConnectionStatusChange={handleConnectionStatusChange}
-      onDataChannelMessage={handleDataChannelMessage}
-      className="flex flex-col h-full bg-background"
-    >
-      {(props: TutorContentProps) => <TutorUI {...props} />}
-    </RealtimeAgentView>
+      {/* Botón de descarga */}
+      <button
+        onClick={downloadRecording}
+        className="fixed bottom-24 right-4 p-2 bg-gray-800 text-white rounded-full shadow-lg hover:bg-gray-700"
+        title="Descargar grabación"
+      >
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+      </button>
+    </div>
   );
 };
 
-// Componente principal que provee el contexto
-const TutorMainView: React.FC = () => {
+const TutorMainView: React.FC<TutorUIProps> = (props) => {
   return (
     <EventProvider>
       <TranscriptProvider>
         <TutorProvider>
-          <TutorContent />
+          <TutorContent {...props} />
         </TutorProvider>
       </TranscriptProvider>
     </EventProvider>

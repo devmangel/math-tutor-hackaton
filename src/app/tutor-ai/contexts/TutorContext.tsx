@@ -27,6 +27,9 @@ interface TutorState {
   sessionStatus: 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED';
   isRecording: boolean;
   isAudioPlaybackEnabled: boolean;
+  sessionProgress: number;
+  currentStep: number;
+  totalSteps: number;
 }
 
 type TutorAction =
@@ -36,6 +39,7 @@ type TutorAction =
   | { type: 'SET_SESSION_STATUS'; payload: 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' }
   | { type: 'SET_RECORDING'; payload: boolean }
   | { type: 'SET_AUDIO_PLAYBACK'; payload: boolean }
+  | { type: 'SET_SESSION_PROGRESS'; payload: { progress: number; currentStep: number; totalSteps: number } }
   | { type: 'CLEAR_MESSAGES' };
 
 // Contexto
@@ -47,6 +51,13 @@ const TutorContext = createContext<{
 // Reducer
 const tutorReducer = (state: TutorState, action: TutorAction): TutorState => {
   switch (action.type) {
+    case 'SET_SESSION_PROGRESS':
+      return {
+        ...state,
+        sessionProgress: action.payload.progress,
+        currentStep: action.payload.currentStep,
+        totalSteps: action.payload.totalSteps,
+      };
     case 'SET_CURRENT_AGENT':
       return {
         ...state,
@@ -96,6 +107,9 @@ export const TutorProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     sessionStatus: 'DISCONNECTED',
     isRecording: false,
     isAudioPlaybackEnabled: true,
+    sessionProgress: 0,
+    currentStep: 0,
+    totalSteps: 0,
   });
 
   return (
@@ -150,6 +164,15 @@ export const tutorActions = {
     payload: enabled,
   }),
   
+  setSessionProgress: (progress: number, currentStep: number, totalSteps: number): TutorAction => ({
+    type: 'SET_SESSION_PROGRESS',
+    payload: {
+      progress: Math.min(100, Math.max(0, progress)),
+      currentStep,
+      totalSteps
+    }
+  }),
+
   clearMessages: (): TutorAction => ({
     type: 'CLEAR_MESSAGES',
   }),

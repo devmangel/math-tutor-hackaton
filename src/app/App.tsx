@@ -7,9 +7,7 @@ import { v4 as uuidv4 } from "uuid";
 import Image from "next/image";
 
 // UI components
-import Transcript from "./components/Transcript";
-import Events from "./components/Events";
-import BottomToolbar from "./components/BottomToolbar";
+import TutorMainView from "./tutor-ai/TutorMainView";
 
 // Types
 import { AgentConfig, SessionStatus } from "@/app/types";
@@ -56,6 +54,8 @@ function App() {
   const [isPTTUserSpeaking, setIsPTTUserSpeaking] = useState<boolean>(false);
   const [isAudioPlaybackEnabled, setIsAudioPlaybackEnabled] =
     useState<boolean>(true);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [isRecording, setIsRecording] = useState<boolean>(false);
 
   const [isOutputAudioBufferActive, setIsOutputAudioBufferActive] =
     useState<boolean>(false);
@@ -333,6 +333,7 @@ function App() {
 
   const handleSendTextMessage = () => {
     if (!userText.trim()) return;
+    setIsProcessing(true);
     cancelAssistantSpeech();
 
     sendClientEvent(
@@ -349,6 +350,7 @@ function App() {
     setUserText("");
 
     sendClientEvent({ type: "response.create" }, "(trigger response)");
+    setIsProcessing(false);
   };
 
   const handleTalkButtonDown = () => {
@@ -357,6 +359,7 @@ function App() {
     cancelAssistantSpeech();
 
     setIsPTTUserSpeaking(true);
+    setIsRecording(true);
     sendClientEvent({ type: "input_audio_buffer.clear" }, "clear PTT buffer");
   };
 
@@ -369,8 +372,11 @@ function App() {
       return;
 
     setIsPTTUserSpeaking(false);
+    setIsRecording(false);
+    setIsProcessing(true);
     sendClientEvent({ type: "input_audio_buffer.commit" }, "commit PTT");
     sendClientEvent({ type: "response.create" }, "trigger response PTT");
+    setIsProcessing(false);
   };
 
   const onToggleConnection = () => {
@@ -546,35 +552,16 @@ function App() {
         </div>
       </div>
 
-      <div className="flex flex-1 gap-2 px-2 overflow-hidden relative">
-        <Transcript
-          userText={userText}
-          setUserText={setUserText}
-          onSendMessage={handleSendTextMessage}
-          downloadRecording={downloadRecording}
-          canSend={
-            sessionStatus === "CONNECTED" &&
-            dcRef.current?.readyState === "open"
-          }
-        />
-
-        <Events isExpanded={isEventsPaneExpanded} />
-      </div>
-
-      <BottomToolbar
+      <TutorMainView 
         sessionStatus={sessionStatus}
-        onToggleConnection={onToggleConnection}
-        isPTTActive={isPTTActive}
-        setIsPTTActive={setIsPTTActive}
-        isPTTUserSpeaking={isPTTUserSpeaking}
-        handleTalkButtonDown={handleTalkButtonDown}
-        handleTalkButtonUp={handleTalkButtonUp}
-        isEventsPaneExpanded={isEventsPaneExpanded}
-        setIsEventsPaneExpanded={setIsEventsPaneExpanded}
-        isAudioPlaybackEnabled={isAudioPlaybackEnabled}
-        setIsAudioPlaybackEnabled={setIsAudioPlaybackEnabled}
-        codec={urlCodec}
-        onCodecChange={handleCodecChange}
+        userText={userText}
+        setUserText={setUserText}
+        handleSendMessage={handleSendTextMessage}
+        isProcessing={isProcessing}
+        isRecording={isRecording}
+        handlePTTStart={handleTalkButtonDown}
+        handlePTTEnd={handleTalkButtonUp}
+        downloadRecording={downloadRecording}
       />
     </div>
   );
