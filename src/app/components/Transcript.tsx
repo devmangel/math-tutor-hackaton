@@ -25,6 +25,7 @@ function Transcript({
 }: TranscriptProps) {
   // Hooks
   const { transcriptItems, toggleTranscriptItemExpand } = useTranscript();
+  console.log("Rendering transcriptItems", transcriptItems); // DEBUG: Ver si el componente se re-renderiza
   const transcriptRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [prevLogs, setPrevLogs] = useState<TranscriptItem[]>([]);
@@ -38,23 +39,15 @@ function Transcript({
 
   // Efectos
   useEffect(() => {
-    if (mounted && transcriptRef.current) {
-      const hasNewMessage = transcriptItems.length > prevLogs.length;
-      const hasUpdatedMessage = transcriptItems.some((newItem, index) => {
-        const oldItem = prevLogs[index];
-        return (
-          oldItem &&
-          (newItem.title !== oldItem.title || newItem.data !== oldItem.data)
-        );
-      });
-
-      if (hasNewMessage || hasUpdatedMessage) {
-        transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
-      }
-
+    if (mounted) {
+      setTimeout(() => {
+        if (transcriptRef.current) {
+          transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
+        }
+      }, 0);
       setPrevLogs(transcriptItems);
     }
-  }, [transcriptItems, mounted, prevLogs]);
+  }, [transcriptItems, mounted]);
 
   useEffect(() => {
     if (mounted && canSend && inputRef.current) {
@@ -115,7 +108,7 @@ function Transcript({
   }
 
   return (
-    <div className="flex flex-col flex-1 bg-white min-h-0 rounded-xl">
+    <div className="flex flex-col flex-1 bg-white min-h-0 rounded-xl relative" style={{ paddingBottom: '2.5rem' }}>
       <div className="flex flex-col flex-1 min-h-0">
         <div className="flex items-center justify-between px-6 py-3 sticky top-0 z-10 text-base border-b bg-white rounded-t-xl">
           <span className="font-semibold">Transcript</span>
@@ -140,7 +133,8 @@ function Transcript({
         {/* Transcript Content */}
         <div
           ref={transcriptRef}
-          className="overflow-auto p-4 flex flex-col gap-y-4 h-full"
+          style={{ maxHeight: '400px', minHeight: '200px', height: '100%', overflowY: 'auto' }}
+          className="p-4 flex flex-col gap-y-4 h-full custom-scrollbar"
         >
           {transcriptItems.map((item) => {
             const {
@@ -161,6 +155,8 @@ function Transcript({
 
             if (type === "MESSAGE") {
               const isUser = role === "user";
+              const isAssistant = role === "assistant";
+              const isInProgress = item.status === "IN_PROGRESS";
               const containerClasses = `flex justify-end flex-col ${
                 isUser ? "items-end" : "items-start"
               }`;
@@ -191,8 +187,17 @@ function Transcript({
                       >
                         {timestamp}
                       </div>
-                      <div className={`whitespace-pre-wrap ${messageStyle}`}>
+                      <div className={`whitespace-pre-wrap ${messageStyle} flex items-center`}>
                         <ReactMarkdown>{displayTitle}</ReactMarkdown>
+                        {isInProgress && (
+                          <span className="ml-2 flex items-center gap-1 text-gray-400 animate-pulse">
+                            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                            </svg>
+                            Transcribiendo...
+                          </span>
+                        )}
                       </div>
                     </div>
                     {guardrailResult && (
@@ -252,7 +257,19 @@ function Transcript({
         </div>
       </div>
 
-      <div className="p-4 flex items-center gap-x-2 flex-shrink-0 border-t border-gray-200">
+      <div
+        className="p-4 flex items-center gap-x-2 flex-shrink-0 border-t border-gray-200 bg-white"
+        style={{
+          position: 'fixed',
+          left: 0,
+          right: 0,
+          bottom: '3cm',
+          zIndex: 50,
+          maxWidth: '900px', // ajusta según tu layout
+          margin: '0 auto',
+          borderRadius: '1rem',
+        }}
+      >
         <input
           ref={inputRef}
           type="text"
@@ -265,6 +282,7 @@ function Transcript({
           }}
           className="flex-1 px-4 py-2 focus:outline-none"
           placeholder="Type a message..."
+          style={{ minHeight: '44px', maxHeight: '44px' }}
         />
         <button
           onClick={onSendMessage}

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, FC, PropsWithChildren, useEffect } from 'react';
 
 // Tipos
 interface Message {
@@ -30,6 +30,7 @@ interface TutorState {
   sessionProgress: number;
   currentStep: number;
   totalSteps: number;
+  isAwaitingUser: boolean;
 }
 
 type TutorAction =
@@ -40,7 +41,8 @@ type TutorAction =
   | { type: 'SET_RECORDING'; payload: boolean }
   | { type: 'SET_AUDIO_PLAYBACK'; payload: boolean }
   | { type: 'SET_SESSION_PROGRESS'; payload: { progress: number; currentStep: number; totalSteps: number } }
-  | { type: 'CLEAR_MESSAGES' };
+  | { type: 'CLEAR_MESSAGES' }
+  | { type: 'SET_AWAITING_USER'; payload: boolean };
 
 // Contexto
 const TutorContext = createContext<{
@@ -93,14 +95,48 @@ const tutorReducer = (state: TutorState, action: TutorAction): TutorState => {
         ...state,
         messages: [],
       };
+    case 'SET_AWAITING_USER':
+      return { ...state, isAwaitingUser: action.payload };
     default:
       return state;
   }
 };
 
+const STORAGE_KEY = {
+  TUTOR_STATE: "tutorState"
+};
+
+// Funciones de utilidad para localStorage
+const saveTutorState = (state: TutorState) => {
+  try {
+    localStorage.setItem(STORAGE_KEY.TUTOR_STATE, JSON.stringify({
+      ...state,
+      timestamp: Date.now()
+    }));
+  } catch (error) {
+    console.error("Error saving tutor state:", error);
+  }
+};
+
+const loadTutorState = (): Partial<TutorState> | null => {
+  try {
+    const savedState = localStorage.getItem(STORAGE_KEY.TUTOR_STATE);
+    if (savedState) {
+      const state = JSON.parse(savedState);
+      // Verificar si el estado no es muy antiguo (30 minutos)
+      if (Date.now() - state.timestamp < 30 * 60 * 1000) {
+        return state;
+      }
+    }
+  } catch (error) {
+    console.error("Error loading tutor state:", error);
+  }
+  return null;
+};
+
 // Provider
-export const TutorProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [state, dispatch] = useReducer(tutorReducer, {
+export const TutorProvider: FC<PropsWithChildren> = ({ children }) => {
+  const initialState: TutorState = {
     currentAgent: null,
     messages: [],
     isProcessing: false,
@@ -110,7 +146,37 @@ export const TutorProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     sessionProgress: 0,
     currentStep: 0,
     totalSteps: 0,
-  });
+    isAwaitingUser: false
+  };
+
+  const [state, dispatch] = useReducer(tutorReducer, initialState);
+
+  // Cargar estado inicial desde localStorage
+  useEffect(() => {
+    const savedState = loadTutorState();
+    if (savedState) {
+      if (savedState.currentAgent) {
+        dispatch(tutorActions.setCurrentAgent(savedState.currentAgent));
+      }
+      if (savedState.messages && savedState.messages.length > 0) {
+        savedState.messages.forEach(message => {
+          dispatch(tutorActions.addMessage(message));
+        });
+      }
+      if (savedState.sessionProgress !== undefined) {
+        dispatch(tutorActions.setSessionProgress(
+          savedState.sessionProgress,
+          savedState.currentStep || 0,
+          savedState.totalSteps || 0
+        ));
+      }
+    }
+  }, []);
+
+  // Guardar estado en localStorage cuando cambie
+  useEffect(() => {
+    saveTutorState(state);
+  }, [state]);
 
   return (
     <TutorContext.Provider value={{ state, dispatch }}>
@@ -175,6 +241,11 @@ export const tutorActions = {
 
   clearMessages: (): TutorAction => ({
     type: 'CLEAR_MESSAGES',
+  }),
+
+  setAwaitingUser: (awaiting: boolean): TutorAction => ({
+    type: 'SET_AWAITING_USER',
+    payload: awaiting,
   }),
 };
 

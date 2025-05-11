@@ -107,6 +107,8 @@ export interface TranscriptItem {
   status: "IN_PROGRESS" | "DONE";
   isHidden: boolean;
   guardrailResult?: GuardrailResultType;
+  characterName?: string;
+  updatedAt?: number;
 }
 
 export interface Log {

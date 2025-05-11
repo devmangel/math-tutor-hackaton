@@ -10,6 +10,8 @@ import {
 import { useTranscript } from "@/app/contexts/TranscriptContext";
 import { useEvent } from "@/app/contexts/EventContext";
 import { runGuardrailClassifier } from "@/app/lib/callOai";
+import { useTutor } from "@/app/tutor-ai/contexts/TutorContext";
+import { tutorActions } from "@/app/tutor-ai/contexts/TutorContext";
 
 export interface UseHandleServerEventParams {
   setSessionStatus: (status: SessionStatus) => void;
@@ -28,7 +30,8 @@ export function useHandleServerEvent({
   sendClientEvent,
   setSelectedAgentName,
   setIsOutputAudioBufferActive,
-}: UseHandleServerEventParams) {
+  onUserVoiceTranscript,
+}: UseHandleServerEventParams & { onUserVoiceTranscript?: () => void }) {
   const {
     transcriptItems,
     addTranscriptBreadcrumb,
@@ -41,6 +44,8 @@ export function useHandleServerEvent({
 
   const assistantDeltasRef = useRef<{ [itemId: string]: string }>({});
 
+  const { state, dispatch } = useTutor();
+
   async function processGuardrail(itemId: string, text: string) {
     let res;
     try {
@@ -49,7 +54,7 @@ export function useHandleServerEvent({
       console.warn(error);
       return;
     }
-
+    
     const currentItem = transcriptItems.find((item) => item.itemId === itemId);
     if ((currentItem?.guardrailResult?.testText?.length ?? 0) > text.length) {
       // If the existing guardrail result is more complete, skip updating. We're running multiple guardrail checks and you don't want an earlier one to overwrite a later, more complete result.
@@ -128,6 +133,8 @@ export function useHandleServerEvent({
 
     addTranscriptBreadcrumb(`function call: ${functionCallParams.name}`, args);
 
+    if (state.isAwaitingUser) return; // No permitir que el agente hable de nuevo
+
     if (currentAgent?.toolLogic?.[functionCallParams.name]) {
       const fn = currentAgent.toolLogic[functionCallParams.name];
       const fnResult = await fn(args, transcriptItems);
@@ -152,6 +159,15 @@ export function useHandleServerEvent({
         null;
       if (newAgentConfig) {
         setSelectedAgentName(destinationAgent);
+        // Sincroniza el agente activo en localStorage
+        localStorage.setItem("chatSession", JSON.stringify({
+          agentName: destinationAgent,
+          timestamp: Date.now()
+        }));
+        // Llama a triggerSessionUpdate si está definida
+        if (triggerSessionUpdate) triggerSessionUpdate();
+        // Dispara el inicio automático de conversación del nuevo agente
+        sendClientEvent({ type: "response.create" }, "trigger response after agent transfer");
       }
       const functionCallOutput = {
         destination_agent: destinationAgent,
@@ -230,7 +246,14 @@ export function useHandleServerEvent({
           if (role === "user" && !text) {
             text = "[Transcribing...]";
           }
-          addTranscriptMessage(itemId, role, text);
+          if (role === "assistant") {
+            // Inicializa vacío para que los deltas llenen la burbuja en tiempo real
+            addTranscriptMessage(itemId, role, "", false);
+            dispatch(tutorActions.setAwaitingUser(true));
+          } else {
+            addTranscriptMessage(itemId, role, text);
+            dispatch(tutorActions.setAwaitingUser(false));
+          }
         }
         break;
       }
@@ -243,6 +266,9 @@ export function useHandleServerEvent({
             : serverEvent.transcript;
         if (itemId) {
           updateTranscriptMessage(itemId, finalTranscript, false);
+          if (serverEvent.item?.role === "user" && finalTranscript && onUserVoiceTranscript) {
+            onUserVoiceTranscript();
+          }
         }
         break;
       }
@@ -250,21 +276,35 @@ export function useHandleServerEvent({
       case "response.audio_transcript.delta": {
         const itemId = serverEvent.item_id;
         const deltaText = serverEvent.delta || "";
+        const role = serverEvent.item?.role as "user" | "assistant";
+        
         if (itemId) {
-          // Update the transcript message with the new text.
+          // Si el mensaje no existe, créalo primero con el rol correcto (usuario o asistente)
+          if (!transcriptItems.some(item => item.itemId === itemId)) {
+            addTranscriptMessage(itemId, role || "assistant", "", false);
+          }
+          
+          // Actualiza el mensaje con el delta
           updateTranscriptMessage(itemId, deltaText, true);
 
-          // Accumulate the deltas and run the output guardrail at regular intervals.
-          if (!assistantDeltasRef.current[itemId]) {
-            assistantDeltasRef.current[itemId] = "";
+          // Si es usuario y hay texto, activa el callback
+          if (role === "user" && deltaText && onUserVoiceTranscript) {
+            onUserVoiceTranscript();
           }
-          assistantDeltasRef.current[itemId] += deltaText;
-          const newAccumulated = assistantDeltasRef.current[itemId];
-          const wordCount = newAccumulated.trim().split(" ").length;
 
-          // Run guardrail classifier every 5 words.
-          if (wordCount > 0 && wordCount % 5 === 0) {
-            processGuardrail(itemId, newAccumulated);
+          // Solo para el asistente, acumula los deltas y ejecuta el guardrail
+          if (role === "assistant") {
+            if (!assistantDeltasRef.current[itemId]) {
+              assistantDeltasRef.current[itemId] = "";
+            }
+            assistantDeltasRef.current[itemId] += deltaText;
+            const newAccumulated = assistantDeltasRef.current[itemId];
+            const wordCount = newAccumulated.trim().split(" ").length;
+
+            // Ejecuta el guardrail cada 5 palabras
+            if (wordCount > 0 && wordCount % 5 === 0) {
+              processGuardrail(itemId, newAccumulated);
+            }
           }
         }
         break;
@@ -315,4 +355,10 @@ export function useHandleServerEvent({
   handleServerEventRef.current = handleServerEvent;
 
   return handleServerEventRef;
+}
+
+// Al final del archivo, exporta una función auxiliar para disparar la actualización de sesión
+export let triggerSessionUpdate: (() => void) | null = null;
+export function setTriggerSessionUpdate(fn: () => void) {
+  triggerSessionUpdate = fn;
 }

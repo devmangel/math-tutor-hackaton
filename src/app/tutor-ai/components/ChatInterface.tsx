@@ -11,6 +11,8 @@ interface Message {
   characterName?: string;
   isCode?: boolean;
   codeLanguage?: string;
+  updatedAt?: string;
+  status?: string;
 }
 
 interface ChatInterfaceProps {
@@ -24,7 +26,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll al último mensaje
+  // Auto-scroll al último mensaje SIEMPRE
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -69,10 +71,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         to-blue-50/30
         backdrop-blur-sm
         chat-interface
+        custom-scrollbar
         relative
         rounded-xl
+        max-h-[600px]
+        min-h-[400px]
         ${className}
       `}
+      style={{ height: '100%' }}
     >
       {/* Fondo con efecto de glassmorphism */}
       <div className="absolute inset-0 bg-white/40 backdrop-blur-sm rounded-xl" />
@@ -91,7 +97,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 layout
                 variants={messageVariants}
                 initial="hidden"
-                animate="visible"
+                animate={{
+                  ...messageVariants.visible,
+                  backgroundColor: message.updatedAt ? ["#fffbe6", "#ffffff"] : undefined,
+                  transition: { duration: 0.7 },
+                }}
                 exit="exit"
                 className="message-container"
               >
@@ -103,6 +113,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   characterName={message.characterName}
                   isCode={message.isCode}
                   codeLanguage={message.codeLanguage}
+                  updatedAt={message.updatedAt}
+                  status={message.status}
                 />
               </motion.div>
             ))}
