@@ -71,9 +71,10 @@ export function useSessionState({
 
     sendEvent(sessionUpdateEvent);
 
-    if (shouldTriggerResponse) {
-      sendSimulatedUserMessage("hi");
-    }
+    // Elimina el envío automático de mensajes simulados
+    // if (shouldTriggerResponse) {
+    //   sendSimulatedUserMessage("hi");
+    // }
   };
 
   const sendSimulatedUserMessage = (text: string) => {

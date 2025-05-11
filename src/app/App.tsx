@@ -9,14 +9,14 @@ import { BookOpen, User, Lightbulb } from 'lucide-react';
 
 // UI components
 import TutorMainView from "./tutor-ai/TutorMainView";
-
+ 
 // Types
 import { AgentConfig, SessionStatus } from "@/app/types";
-
+ 
 // Context providers & hooks
 import { useTranscript } from "@/app/contexts/TranscriptContext";
 import { useEvent } from "@/app/contexts/EventContext";
-import { useHandleServerEvent } from "./hooks/useHandleServerEvent";
+import { useHandleServerEvent, setTriggerSessionUpdate } from "./hooks/useHandleServerEvent";
 
 // Utilities
 import { createRealtimeConnection } from "./lib/realtimeConnection";
@@ -25,8 +25,9 @@ import { createRealtimeConnection } from "./lib/realtimeConnection";
 import { allAgentSets, defaultAgentSetKey } from "@/app/tutor-ai/agentConfigs";
 
 import useAudioDownload from "./hooks/useAudioDownload";
+import { TutorProvider } from "./tutor-ai/contexts/TutorContext";
 
-function App() {
+function AppContent() {
   const searchParams = useSearchParams();
 
   // Use urlCodec directly from URL search params (default: "opus")
@@ -37,14 +38,8 @@ function App() {
   const { logClientEvent, logServerEvent } = useEvent();
 
   const [selectedAgentName, setSelectedAgentName] = useState<string>("");
-  const [selectedAgentConfigSet, setSelectedAgentConfigSet] = useState<
-    AgentConfig[] | null
-  >(null);
-
-  const [dataChannel, setDataChannel] = useState<RTCDataChannel | null>(null);
-  const pcRef = useRef<RTCPeerConnection | null>(null);
-  const dcRef = useRef<RTCDataChannel | null>(null);
-  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  const [selectedAgentConfigSet, setSelectedAgentConfigSet] = useState<AgentConfig[] | null>(null);
+  const [conversationContext, setConversationContext] = useState<any>(null);
   const [sessionStatus, setSessionStatus] =
     useState<SessionStatus>("DISCONNECTED");
 
@@ -63,6 +58,14 @@ function App() {
   // Initialize the recording hook.
   const { startRecording, stopRecording, downloadRecording } =
     useAudioDownload();
+
+  // Bandera para saber si hubo transcripción de voz
+  const [hasVoiceTranscript, setHasVoiceTranscript] = useState(false);
+
+  const [dataChannel, setDataChannel] = useState<RTCDataChannel | null>(null);
+  const pcRef = useRef<RTCPeerConnection | null>(null);
+  const dcRef = useRef<RTCDataChannel | null>(null);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
 
   const sendClientEvent = (eventObj: any, eventNameSuffix = "") => {
     if (dcRef.current && dcRef.current.readyState === "open") {
@@ -87,6 +90,7 @@ function App() {
     sendClientEvent,
     setSelectedAgentName,
     setIsOutputAudioBufferActive,
+    onUserVoiceTranscript: () => setHasVoiceTranscript(true),
   });
 
   // Cargar el estado inicial de manera segura para SSR
@@ -111,8 +115,13 @@ function App() {
         // Verificar si la sesión no es muy antigua (30 minutos)
         if (Date.now() - timestamp < 30 * 60 * 1000) {
           // Verificar que el agente existe en el conjunto actual
-          if (agents.some(a => a.name === agentName)) {
+          const matchingAgent = agents.find(a => a.name === agentName);
+          if (matchingAgent) {
             setSelectedAgentName(agentName);
+            // Restaurar el contexto de la conversación si existe
+            if (conversationContext) {
+              setConversationContext(conversationContext);
+            }
             return;
           }
         }
@@ -124,6 +133,18 @@ function App() {
     // Si no hay sesión válida, usar el primer agente
     setSelectedAgentName(agents[0]?.name || "");
   }, [searchParams]);
+
+  // Guardar el estado de la sesión cuando cambie el agente o el contexto
+  useEffect(() => {
+    if (selectedAgentName && selectedAgentConfigSet) {
+      const sessionState = {
+        agentName: selectedAgentName,
+        conversationContext: conversationContext,
+        timestamp: Date.now()
+      };
+      localStorage.setItem("chatSession", JSON.stringify(sessionState));
+    }
+  }, [selectedAgentName, conversationContext]);
 
   // Conectar a realtime cuando se selecciona un agente
   useEffect(() => {
@@ -240,28 +261,6 @@ function App() {
     logClientEvent({}, "disconnected");
   };
 
-  const sendSimulatedUserMessage = (text: string) => {
-    const id = uuidv4().slice(0, 32);
-    addTranscriptMessage(id, "user", text, true);
-
-    sendClientEvent(
-      {
-        type: "conversation.item.create",
-        item: {
-          id,
-          type: "message",
-          role: "user",
-          content: [{ type: "input_text", text }],
-        },
-      },
-      "(simulated user text message)"
-    );
-    sendClientEvent(
-      { type: "response.create" },
-      "(trigger response after simulated user text message)"
-    );
-  };
-
   const updateSession = (shouldTriggerResponse: boolean = false) => {
     sendClientEvent(
       { type: "input_audio_buffer.clear" },
@@ -298,10 +297,6 @@ function App() {
     };
 
     sendClientEvent(sessionUpdateEvent);
-
-    if (shouldTriggerResponse) {
-      sendSimulatedUserMessage("hi");
-    }
   };
 
   const cancelAssistantSpeech = async () => {
@@ -310,9 +305,8 @@ function App() {
       .reverse()
       .find((item) => item.role === "assistant");
 
-
     if (!mostRecentAssistantMessage) {
-      console.warn("can't cancel, no recent assistant message found");
+      // No recent assistant message found to cancel (silenciado para limpiar consola)
       return;
     }
     if (mostRecentAssistantMessage.status === "IN_PROGRESS") {
@@ -335,6 +329,10 @@ function App() {
     if (!userText.trim()) return;
     setIsProcessing(true);
     cancelAssistantSpeech();
+
+    // Optimistic update: agrega el mensaje del usuario inmediatamente
+    const tempId = `temp-${Date.now()}`;
+    addTranscriptMessage(tempId, "user", userText.trim(), false);
 
     sendClientEvent(
       {
@@ -391,12 +389,16 @@ function App() {
       setIsPTTUserSpeaking(false);
       setIsRecording(false);
       setIsProcessing(true);
-      
+      setHasVoiceTranscript(false);
       await sendClientEvent({ type: "input_audio_buffer.commit" }, "commit PTT");
-      await sendClientEvent({ type: "response.create" }, "trigger response PTT");
+      setTimeout(() => {
+        if (hasVoiceTranscript) {
+          sendClientEvent({ type: "response.create" }, "trigger response PTT");
+        }
+        setIsProcessing(false);
+      }, 1500);
     } catch (error) {
       console.error('Error al procesar audio:', error);
-    } finally {
       setIsProcessing(false);
     }
   };
@@ -490,6 +492,12 @@ function App() {
   }, [sessionStatus]);
 
   const agentSetKey = searchParams.get("agentConfig") || "default";
+
+  useEffect(() => {
+    // Registra updateSession como trigger para transferencias de agente
+    setTriggerSessionUpdate(() => () => updateSession());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="text-base flex flex-col h-screen bg-gradient-to-b from-blue-50 to-white text-gray-800 relative">
@@ -608,6 +616,14 @@ function App() {
         </motion.div>
       </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <TutorProvider>
+      <AppContent />
+    </TutorProvider>
   );
 }
 

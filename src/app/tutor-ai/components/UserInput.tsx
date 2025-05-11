@@ -105,6 +105,7 @@ const UserInput: React.FC<UserInputProps> = ({
         border-gray-200
         shadow-lg
         user-input
+        pb-8
         ${className}
       `}
     >
